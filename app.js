@@ -1,6 +1,8 @@
+// noinspection BadExpressionStatementJS
+
 const express = require('express')
-const fortune = require("./lib/fortune")
 const expressHandlebars = require('express-handlebars')
+const handlers = require('./lib/handlers')
 
 app = express()
 const port = process.env.PORT || 8000
@@ -8,26 +10,27 @@ const port = process.env.PORT || 8000
 app.engine('handlebars', expressHandlebars({
 	defaultLayout: 'main',
 }))
+app.disable('x-powered-by')
 app.set('view engine', 'handlebars')
 app.use(express.static('/public'))
 
-app.get('/', (req, res) => res.render('home'))
-
-app.get('/about', (req, res) => {
-	res.render('about', { fortune: fortune.getFortune })
+app.get('/', handlers.home)
+app.get('/about', handlers.about)
+app.get('/headers', (req, res) => {
+	res.type('text/html')
+	const headers = Object.entries(req.headers)
+		.map(([key, value]) => `${key}: ${value}`)
+	res.send(headers.join('\n'))
 })
 
-app.use((req, res) => {
-	res.status(404)
-	res.render('404')
-})
+app.use(handlers.notFound)
+app.use(handlers.serverError)
 
-app.use((err, req, res, next) => {
-	console.error(err.message)
-	res.status(500)
-	res.render('500')
-})
+if (require.main === module) {
+	app.listen(port, () => {
+		console.log(`server ishga tushgan port: ${port}`)
+	})
+} else {
+	module.exports = app
+}
 
-app.listen(port, () => {
-	console.log(`server ishga tushgan port: ${port}`)
-})
